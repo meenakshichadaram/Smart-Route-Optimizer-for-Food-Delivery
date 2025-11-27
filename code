@@ -1,0 +1,127 @@
+import java.util.*;
+
+public class Main {
+
+    // ---------------- GRAPH CLASS ----------------
+    static class Graph {
+        private final Map<String, List<Node>> adjList = new HashMap<>();
+
+        static class Node {
+            String vertex;
+            int weight;
+
+            Node(String vertex, int weight) {
+                this.vertex = vertex;
+                this.weight = weight;
+            }
+        }
+
+        // Add edges (roads)
+        public void addRoad(String from, String to, int distance) {
+            adjList.putIfAbsent(from, new ArrayList<>());
+            adjList.putIfAbsent(to, new ArrayList<>());
+            adjList.get(from).add(new Node(to, distance));
+            adjList.get(to).add(new Node(from, distance));  // bidirectional
+        }
+
+        public Map<String, List<Node>> getGraph() {
+            return adjList;
+        }
+    }
+
+    // ---------------- DIJKSTRA ALGORITHM ----------------
+    public static Map<String, Integer> dijkstra(Graph graph, String start) {
+        Map<String, Integer> distances = new HashMap<>();
+        PriorityQueue<Graph.Node> pq = new PriorityQueue<>(Comparator.comparingInt(n -> n.weight));
+
+        // Initialize distances
+        for (String city : graph.getGraph().keySet()) {
+            distances.put(city, Integer.MAX_VALUE);
+        }
+
+        // If start is not part of the graph, return the distances map unchanged
+        if (!distances.containsKey(start)) {
+            return distances;
+        }
+
+        distances.put(start, 0);
+        pq.add(new Graph.Node(start, 0));
+
+        while (!pq.isEmpty()) {
+            Graph.Node current = pq.poll();
+
+            // Skip stale entries (we've already found a better path)
+            Integer curDist = distances.get(current.vertex);
+            if (curDist == null || current.weight > curDist) {
+                continue;
+            }
+
+            List<Graph.Node> neighbors = graph.getGraph().get(current.vertex);
+            if (neighbors == null) {
+                continue;
+            }
+
+            for (Graph.Node neighbor : neighbors) {
+                // If current distance is infinite, skip
+                if (distances.get(current.vertex) == Integer.MAX_VALUE) {
+                    continue;
+                }
+
+                int newDistance = distances.get(current.vertex) + neighbor.weight;
+
+                if (newDistance < distances.get(neighbor.vertex)) {
+                    distances.put(neighbor.vertex, newDistance);
+                    pq.add(new Graph.Node(neighbor.vertex, newDistance));
+                }
+            }
+        }
+
+        return distances;
+    }
+
+    // ---------------- MAIN PROGRAM ----------------
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        Graph cityMap = new Graph();
+
+        // SAMPLE MAP (you can modify)
+        cityMap.addRoad("Restaurant", "A", 4);
+        cityMap.addRoad("Restaurant", "B", 2);
+        cityMap.addRoad("A", "C", 3);
+        cityMap.addRoad("B", "C", 1);
+        cityMap.addRoad("C", "D", 5);
+        cityMap.addRoad("D", "Customer", 2);
+
+        System.out.println("🚚 SMART ROUTE OPTIMIZER FOR FOOD DELIVERY");
+        System.out.println("-------------------------------------------");
+
+        System.out.print("Enter START location (Example: Restaurant): ");
+        String start = sc.nextLine().trim();
+
+        System.out.print("Enter DELIVERY location (Example: Customer): ");
+        String destination = sc.nextLine().trim();
+
+        if (!cityMap.getGraph().containsKey(start)) {
+            System.out.println("Start location '" + start + "' not found on map.\nPlease use one of: " + cityMap.getGraph().keySet());
+            return;
+        }
+
+        Map<String, Integer> shortestPaths = dijkstra(cityMap, start);
+
+        Integer destDist = shortestPaths.get(destination);
+        String destOut = (destDist == null || destDist == Integer.MAX_VALUE) ? "Unreachable" : destDist + " km";
+
+        System.out.println("\n📌 Shortest Distance to " + destination + " = " + destOut);
+
+        System.out.println("\n✨ All Distances from " + start + ":");
+        for (String city : shortestPaths.keySet()) {
+            Integer d = shortestPaths.get(city);
+            String out = (d == null || d == Integer.MAX_VALUE) ? "Unreachable" : d + " km";
+            System.out.println(" - " + city + " → " + out);
+        }
+
+        System.out.println("\n✅ Route optimization complete!");
+    }
+}
+
